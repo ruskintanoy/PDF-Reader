@@ -6,8 +6,7 @@ def pdf_to_excel(pdf_path, output_excel_path):
     
     df = tables[0].df
     
-    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET", 
-                       "Summary of Easy Payment Balance by user", "USER", "STARTING BALANCE"]
+    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET"]
     
     corrected_data = []
     
