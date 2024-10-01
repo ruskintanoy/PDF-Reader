@@ -9,6 +9,9 @@ def pdf_to_excel(pdf_path, output_excel_path):
     # Step 3: Convert the table to a pandas DataFrame (assuming single table)
     df = tables[0].df
     
+    # Define keywords to identify device-related rows
+    keywords = ["SAMSUNG", "GOOGLE", "IPHONE", "business", "tablet"]
+    
     # Step 4: Initialize a list to hold cleaned rows
     cleaned_data = []
     current_record = []  # To hold partial rows
@@ -16,6 +19,10 @@ def pdf_to_excel(pdf_path, output_excel_path):
     # Step 5: Iterate through the rows of the dataframe
     for i in range(0, len(df)):
         row = df.iloc[i]
+        
+        # Check if the first column contains any of the keywords, skip the row if true
+        if any(keyword.lower() in row[0].lower() for keyword in keywords):
+            continue  # Skip this row as it's a device-related row
         
         # If the row contains a name (detected by presence of non-empty string in column 0)
         if row[0].strip() and len(row[0].split()) > 1:  # Ensure that the first column has more than one word (name)
@@ -33,11 +40,12 @@ def pdf_to_excel(pdf_path, output_excel_path):
         
         # If the current row is likely to be a continuation of the previous record (contains a contact number)
         elif i > 0 and df.iloc[i - 1, 0].strip() and not row[0].strip():
-            contact_num = row[0]
+            # Join the contact number into one value if it's split across columns
+            contact_num = ' '.join([str(row[0]).strip(), str(row[1]).strip()]).strip()  # Combine first two columns for contact number
             current_record[2] = contact_num  # Update the contact number in the current record
         
-        # If it's an intermediate row with device info or extra rows, ignore it
-        else:
+        # Skip rows that are either empty or contain irrelevant info
+        elif not any(row[1:].str.strip()):
             continue
     
     # Ensure the last record is also added to the cleaned data
@@ -59,5 +67,5 @@ def pdf_to_excel(pdf_path, output_excel_path):
 
 # Example usage
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf"
-output_excel_path = 'output_file_cleaned_fixed_v2.xlsx'
+output_excel_path = 'output_file_cleaned_v4.xlsx'
 pdf_to_excel(pdf_path, output_excel_path)
