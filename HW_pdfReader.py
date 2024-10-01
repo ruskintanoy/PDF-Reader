@@ -22,7 +22,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5')  # switch to the page you want to copy
     df = tables[0].df   
-    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET", "SUMMARY", "EASY PAYMENT", "USER"] 
+    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "SUMMARY", "EASY PAYMENT", "USER"] 
     corrected_data = []
     
     i = 0
