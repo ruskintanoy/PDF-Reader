@@ -10,7 +10,7 @@ def pdf_to_excel(pdf_path, output_excel_path):
     df = tables[0].df
     
     # Define keywords to identify device-related rows
-    keywords = ["SAMSUNG", "GOOGLE", "IPHONE", "business", "tablet"]
+    keywords = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET"]
     
     # Step 4: Initialize a list to hold cleaned rows
     cleaned_data = []
