@@ -2,14 +2,12 @@ import camelot
 import pandas as pd
 
 def pdf_to_excel(pdf_path, output_excel_path):
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # change the page to the one you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # switch to the page you want to copy
     
     df = tables[0].df
     
     keywords = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET"]
-    
     skip_rows = ["Summary of Easy Payment Balance by user", "USER", "STARTING BALANCE"]
-    
     corrected_data = []
     
     i = 0
@@ -51,7 +49,7 @@ def pdf_to_excel(pdf_path, output_excel_path):
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
         cleaned_df.to_excel(writer, index=False, header=False)
 
-    print(f"Data has been successfully written to {output_excel_path}")
+    print(f"Data written to {output_excel_path}")
 
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf"
 output_excel_path = 'telusOUTPUT.xlsx'
