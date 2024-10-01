@@ -48,5 +48,5 @@ def pdf_to_excel(pdf_path, output_excel_path):
     print(f"Data written to {output_excel_path}")
 
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf" # change the fle path to the correct month
-output_excel_path = 'OUTPUT.xlsx'
+output_excel_path = 'hw_output.xlsx'
 pdf_to_excel(pdf_path, output_excel_path)
