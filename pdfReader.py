@@ -2,25 +2,22 @@ import camelot
 import pandas as pd
 
 def pdf_to_excel(pdf_path, output_excel_path):
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # switch to the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5')  # switch to the page you want to copy
     
     df = tables[0].df
     
-    keywords = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET"]
-    skip_rows = ["Summary of Easy Payment Balance by user", "USER", "STARTING BALANCE"]
+    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET", 
+                       "Summary of Easy Payment Balance by user", "USER", "STARTING BALANCE"]
+    
     corrected_data = []
     
     i = 0
     while i < len(df):
         row = df.iloc[i]
         
-        if any(skip_text.lower() in row[0].lower() for skip_text in skip_rows):
+        if any(skip_text.lower() in row[0].lower() for skip_text in skip_conditions):
             i += 1
             continue  
-        
-        if any(keyword.lower() in row[0].lower() for keyword in keywords):
-            i += 1
-            continue 
         
         if row[0].strip() and len(row[0].split()) > 1:
             name_parts = row[0].split(maxsplit=1)
@@ -52,5 +49,5 @@ def pdf_to_excel(pdf_path, output_excel_path):
     print(f"Data written to {output_excel_path}")
 
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf"
-output_excel_path = 'telusOUTPUT.xlsx'
+output_excel_path = 'OUTPUT.xlsx'
 pdf_to_excel(pdf_path, output_excel_path)
