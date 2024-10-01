@@ -2,7 +2,7 @@ import camelot
 import pandas as pd
 
 def pdf_to_excel(pdf_path, output_excel_path):
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5')
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # change the page you want to copy
     
     df = tables[0].df
     
@@ -54,5 +54,5 @@ def pdf_to_excel(pdf_path, output_excel_path):
     print(f"Data has been successfully written to {output_excel_path}")
 
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf"
-output_excel_path = 'tesusOUTPUT.xlsx'
+output_excel_path = 'telusOUTPUT.xlsx'
 pdf_to_excel(pdf_path, output_excel_path)
