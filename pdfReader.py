@@ -11,36 +11,39 @@ def pdf_to_excel(pdf_path, output_excel_path):
     
     # Step 4: Initialize a list to hold cleaned rows
     cleaned_data = []
-    
+    current_record = []  # To hold partial rows
+
     # Step 5: Iterate through the rows of the dataframe
-    for i in range(0, len(df), 2):  # Step over 2 rows since the contact number is on the next row
+    for i in range(0, len(df)):
         row = df.iloc[i]
         
-        # Check if the name column is not empty or contains unexpected data
-        if not row[0].strip():
-            continue  # Skip rows without a valid name
+        # If the row contains a name (detected by presence of non-empty string in column 0)
+        if row[0].strip() and len(row[0].split()) > 1:  # Ensure that the first column has more than one word (name)
+            if current_record:  # If we already have a record in progress, save it before starting a new one
+                cleaned_data.append(current_record)
+            
+            # Start a new record by processing name and subsequent data
+            name_parts = row[0].split(maxsplit=1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            current_record = [
+                first_name, last_name, '',  # Start a new record with empty contact number initially
+                row[1], row[2], row[3], row[4], row[5], row[6]
+            ]
         
-        # Extract first and last names from column 0
-        name_parts = row[0].split(maxsplit=1)
-        if len(name_parts) < 1:
-            continue  # Skip rows that don't have at least a first name
+        # If the current row is likely to be a continuation of the previous record (contains a contact number)
+        elif i > 0 and df.iloc[i - 1, 0].strip() and not row[0].strip():
+            contact_num = row[0]
+            current_record[2] = contact_num  # Update the contact number in the current record
         
-        first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
-        
-        # Extract the contact number from the next row (i+1), if available
-        contact_num = df.iloc[i + 1, 0] if i + 1 < len(df) else ''
-        
-        # Remove unwanted device-related rows based on empty values in key columns
-        if not row[1].strip() or not row[3].strip():  # Skips empty or invalid rows
+        # If it's an intermediate row with device info or extra rows, ignore it
+        else:
             continue
-        
-        # Add the cleaned row to the list
-        cleaned_data.append([
-            first_name, last_name, contact_num,
-            row[1], row[2], row[3], row[4], row[5], row[6]
-        ])
     
+    # Ensure the last record is also added to the cleaned data
+    if current_record:
+        cleaned_data.append(current_record)
+
     # Convert the cleaned data to a new DataFrame with correct headers
     cleaned_df = pd.DataFrame(cleaned_data, columns=[
         'First Name', 'Last Name', 'Contact Number',
@@ -56,5 +59,5 @@ def pdf_to_excel(pdf_path, output_excel_path):
 
 # Example usage
 pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf"
-output_excel_path = 'output_file_cleaned.xlsx'
+output_excel_path = 'output_file_cleaned_fixed_v2.xlsx'
 pdf_to_excel(pdf_path, output_excel_path)
