@@ -2,7 +2,7 @@ import camelot
 import pandas as pd
 
 def pdf_to_excel(pdf_path, output_excel_path):
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # change the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5') # change the page to the one you want to copy
     
     df = tables[0].df
     
@@ -10,7 +10,7 @@ def pdf_to_excel(pdf_path, output_excel_path):
     
     skip_rows = ["Summary of Easy Payment Balance by user", "USER", "STARTING BALANCE"]
     
-    cleaned_data = []
+    corrected_data = []
     
     i = 0
     while i < len(df):
@@ -32,7 +32,7 @@ def pdf_to_excel(pdf_path, output_excel_path):
             contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
             contact_num = contact_row[0].strip() if contact_row is not None else ''
             
-            cleaned_data.append([
+            corrected_data.append([
                 first_name, last_name, contact_num,
                 row[1].strip(), row[2].strip(), row[3].strip(),
                 row[4].strip(), row[5].strip()  
@@ -42,14 +42,14 @@ def pdf_to_excel(pdf_path, output_excel_path):
         else:
             i += 1
     
-    cleaned_df = pd.DataFrame(cleaned_data, columns=[
+    cleaned_df = pd.DataFrame(corrected_data, columns=[
         'First Name', 'Last Name', 'Contact Number',
         'Starting Balance', 'Payments ($)', 'Current Balance',
         'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)'
     ])
     
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-        cleaned_df.to_excel(writer, sheet_name='Hardware', index=False, header=False)
+        cleaned_df.to_excel(writer, index=False, header=False)
 
     print(f"Data has been successfully written to {output_excel_path}")
 
