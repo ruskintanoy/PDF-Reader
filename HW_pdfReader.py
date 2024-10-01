@@ -1,13 +1,28 @@
 import camelot
 import pandas as pd
+import os
+import re  
 
-def pdf_to_excel(pdf_path, output_excel_path):
+def format_contact_number(contact_num):
+    formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
+    return formatted_number
+
+def find_pdf_in_folder(folder_path):
+    for file_name in os.listdir(folder_path):
+        if file_name.endswith('.pdf'):
+            return os.path.join(folder_path, file_name)
+    return None
+
+def pdf_to_excel(folder_path, output_excel_path):
+    pdf_path = find_pdf_in_folder(folder_path)
+    
+    if not pdf_path:
+        print("No PDF file found in the folder.")
+        return
+
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5')  # switch to the page you want to copy
-    
-    df = tables[0].df
-    
-    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET"]
-    
+    df = tables[0].df   
+    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "GALAXY", "BLACK", "TABLET", "SUMMARY", "EASY PAYMENT", "USER"] 
     corrected_data = []
     
     i = 0
@@ -25,6 +40,8 @@ def pdf_to_excel(pdf_path, output_excel_path):
             
             contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
             contact_num = contact_row[0].strip() if contact_row is not None else ''
+
+            contact_num = format_contact_number(contact_num)
             
             corrected_data.append([
                 first_name, last_name, contact_num,
@@ -47,6 +64,6 @@ def pdf_to_excel(pdf_path, output_excel_path):
 
     print(f"Data written to {output_excel_path}")
 
-pdf_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\2024\9 - 2024 September\TELUS-INVOICE.pdf" # change the fle path to the correct month
+folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"  
 output_excel_path = 'hw_output.xlsx'
-pdf_to_excel(pdf_path, output_excel_path)
+pdf_to_excel(folder_path, output_excel_path)
