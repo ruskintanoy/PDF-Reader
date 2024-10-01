@@ -2,7 +2,7 @@ import camelot
 import pandas as pd
 
 def pdf_to_excel(pdf_path, output_excel_path):
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='18')  # switch to the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='5')  # switch to the page you want to copy
     
     df = tables[0].df
     
