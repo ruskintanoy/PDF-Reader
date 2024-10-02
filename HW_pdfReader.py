@@ -17,13 +17,14 @@ def dash_to_zero(value):
     return '0' if value == '-' else value
 
 def pdf_to_excel(folder_path, output_excel_path):
+    page_number = input("Enter the page number you want to extract: ")
     pdf_path = find_pdf_in_folder(folder_path)
     
     if not pdf_path:
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Input the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=page_number)  
     df = tables[0].df   
     skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "BLACK", "SUMMARY", "USER"] 
     corrected_data = []
