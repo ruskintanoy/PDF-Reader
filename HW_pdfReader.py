@@ -20,11 +20,7 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-<<<<<<< HEAD
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Switch to the page you want to copy
-=======
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # input the page num you want to copy
->>>>>>> parent of c1015f7 (Update HW_pdfReader.py)
     df = tables[0].df   
     skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "BLACK", "SUMMARY", "USER"] 
     corrected_data = []
@@ -68,14 +64,6 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     print(f"Data written to {output_excel_path}")
 
-<<<<<<< HEAD
-# Specify folder path and output path
-folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
-output_excel_path = 'raw_output.xlsx'
-
-# Run the function to process the PDF and export to Excel
-=======
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice" 
 output_excel_path = 'hw_output.xlsx'
->>>>>>> parent of c1015f7 (Update HW_pdfReader.py)
 pdf_to_excel(folder_path, output_excel_path)
