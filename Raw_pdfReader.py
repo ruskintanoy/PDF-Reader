@@ -13,6 +13,9 @@ def find_pdf_in_folder(folder_path):
             return os.path.join(folder_path, file_name)
     return None
 
+def dash_to_zero(value):
+    return '0' if value == '-' else value
+
 def pdf_to_excel(folder_path, output_excel_path):
     pdf_path = find_pdf_in_folder(folder_path)
     
@@ -20,7 +23,7 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # input the the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Input the page you want to copy
     df = tables[0].df   
     skip_conditions = ["BBAN", "BUSINESS", "TABLET", "SUMMARY", "USER"]
     corrected_data = []
@@ -57,14 +60,17 @@ def pdf_to_excel(folder_path, output_excel_path):
             if has_partial_charges:
                 corrected_data.append([
                     first_name, last_name, contact_num,
-                    row[1].strip(), row[2].strip(), row[3].strip(),
-                    row[4].strip(), row[5].strip(), row[6].strip(), row[7].strip()
+                    dash_to_zero(row[1].strip()), dash_to_zero(row[2].strip()),
+                    dash_to_zero(row[3].strip()), dash_to_zero(row[4].strip()),
+                    dash_to_zero(row[5].strip()), dash_to_zero(row[6].strip()), 
+                    dash_to_zero(row[7].strip())
                 ])
             else:
                 corrected_data.append([
                     first_name, last_name, contact_num,
-                    row[1].strip(), row[2].strip(), row[3].strip(),
-                    row[4].strip(), row[5].strip(), row[6].strip()
+                    dash_to_zero(row[1].strip()), dash_to_zero(row[2].strip()),
+                    dash_to_zero(row[3].strip()), dash_to_zero(row[4].strip()),
+                    dash_to_zero(row[5].strip()), dash_to_zero(row[6].strip())
                 ])
             
             i += 2
