@@ -1,7 +1,7 @@
 import camelot
 import pandas as pd
 import os
-import re
+import re  
 
 def format_contact_number(contact_num):
     formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
@@ -20,24 +20,15 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
+<<<<<<< HEAD
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Switch to the page you want to copy
+=======
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # input the page num you want to copy
+>>>>>>> parent of c1015f7 (Update HW_pdfReader.py)
     df = tables[0].df   
-    skip_conditions = ["BBAN", "FORD", "BUSINESS", "TABLET", "SUMMARY", "USER"]
+    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "BLACK", "SUMMARY", "USER"] 
     corrected_data = []
-
-    # Determine if "PARTIAL CHARGES ($)" column is present by checking the number of columns
-    has_partial_charges = len(df.columns) == 8
-
-    # Headers based on whether "PARTIAL CHARGES ($)" exists or not
-    if has_partial_charges:
-        headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
-                   'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                   'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
-    else:
-        headers = ['First Name', 'Last Name', 'Contact Number',
-                   'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                   'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
-
+    
     i = 0
     while i < len(df):
         row = df.iloc[i]
@@ -55,36 +46,36 @@ def pdf_to_excel(folder_path, output_excel_path):
             contact_num = contact_row[0].strip() if contact_row is not None else ''
 
             contact_num = format_contact_number(contact_num)
-
-            # Handling the case for partial charges dynamically
-            if has_partial_charges:
-                corrected_data.append([
-                    first_name, last_name, contact_num,
-                    row[1].strip(), row[2].strip(), row[3].strip(),
-                    row[4].strip(), row[5].strip(), row[6].strip(), row[7].strip()
-                ])
-            else:
-                corrected_data.append([
-                    first_name, last_name, contact_num,
-                    row[1].strip(), row[2].strip(), row[3].strip(),
-                    row[4].strip(), row[5].strip(), row[6].strip()
-                ])
+            
+            corrected_data.append([
+                first_name, last_name, contact_num,
+                row[1].strip(), row[2].strip(), row[3].strip(),
+                row[4].strip(), row[5].strip()  
+            ])
             
             i += 2
         else:
             i += 1
-
-    # Create DataFrame with correct headers based on the presence of partial charges
-    cleaned_df = pd.DataFrame(corrected_data, columns=headers)
+    
+    cleaned_df = pd.DataFrame(corrected_data, columns=[
+        'First Name', 'Last Name', 'Contact Number',
+        'Starting Balance', 'Payments ($)', 'Current Balance',
+        'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)'
+    ])
     
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-        cleaned_df.to_excel(writer, index=False, header=True)
+        cleaned_df.to_excel(writer, index=False, header=False)
 
     print(f"Data written to {output_excel_path}")
 
+<<<<<<< HEAD
 # Specify folder path and output path
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'raw_output.xlsx'
 
 # Run the function to process the PDF and export to Excel
+=======
+folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice" 
+output_excel_path = 'hw_output.xlsx'
+>>>>>>> parent of c1015f7 (Update HW_pdfReader.py)
 pdf_to_excel(folder_path, output_excel_path)
