@@ -20,15 +20,13 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Switch to the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Input the the page you want to copy
     df = tables[0].df   
     skip_conditions = ["BBAN", "FORD", "BUSINESS", "TABLET", "SUMMARY", "USER"]
     corrected_data = []
 
-    # Determine if "PARTIAL CHARGES ($)" column is present by checking the number of columns
     has_partial_charges = len(df.columns) == 8
 
-    # Headers based on whether "PARTIAL CHARGES ($)" exists or not
     if has_partial_charges:
         headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
                    'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
@@ -56,7 +54,6 @@ def pdf_to_excel(folder_path, output_excel_path):
 
             contact_num = format_contact_number(contact_num)
 
-            # Handling the case for partial charges dynamically
             if has_partial_charges:
                 corrected_data.append([
                     first_name, last_name, contact_num,
@@ -74,7 +71,6 @@ def pdf_to_excel(folder_path, output_excel_path):
         else:
             i += 1
 
-    # Create DataFrame with correct headers based on the presence of partial charges
     cleaned_df = pd.DataFrame(corrected_data, columns=headers)
     
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
@@ -82,9 +78,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     print(f"Data written to {output_excel_path}")
 
-# Specify folder path and output path
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'raw_output.xlsx'
 
-# Run the function to process the PDF and export to Excel
 pdf_to_excel(folder_path, output_excel_path)
