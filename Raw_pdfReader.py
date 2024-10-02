@@ -20,9 +20,9 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # Input the the page you want to copy
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages='')  # input the the page you want to copy
     df = tables[0].df   
-    skip_conditions = ["BBAN", "FORD", "BUSINESS", "TABLET", "SUMMARY", "USER"]
+    skip_conditions = ["BBAN", "FORD", "BUSINESS", "TABLET", "SUMMARY", "USER", "MOBILE"]
     corrected_data = []
 
     has_partial_charges = len(df.columns) == 8
