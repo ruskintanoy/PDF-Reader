@@ -2,6 +2,8 @@ import camelot
 import pandas as pd
 import os
 import re
+import tkinter as tk
+from tkinter import simpledialog
 
 def format_contact_number(contact_num):
     formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
@@ -17,7 +19,15 @@ def dash_to_zero(value):
     return '0' if value == '-' else value
 
 def pdf_to_excel(folder_path, output_excel_path):
-    page_number = input("Enter the page number you want to extract: ")
+
+    root = tk.Tk()
+    root.withdraw()  
+    page_number = simpledialog.askstring("Input", "Enter the page number you want to extract:")
+
+    if not page_number:
+        print("No page number entered.")
+        return
+
     pdf_path = find_pdf_in_folder(folder_path)
     
     if not pdf_path:
