@@ -34,7 +34,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     root = tk.Tk()
     root.withdraw() 
-    page_input = simpledialog.askstring("Input", "Enter the page numbers you want to extract:")
+    page_input = simpledialog.askstring("Input", "Enter the pages you want to extract:")
 
     if not page_input:
         print("No pages entered.")
@@ -50,7 +50,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)  
     corrected_data = []
-    skip_conditions = ["SAMSUNG", "GOOGLE", "IPHONE", "BLACK", "SUMMARY", "USER"] 
+    skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE"] 
     
     for table in tables:
         df = table.df
