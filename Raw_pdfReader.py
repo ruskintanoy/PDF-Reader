@@ -44,7 +44,7 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No pages entered.")
         return
 
-    pages = parse_pages_input(page_input)  # Convert to valid format for Camelot
+    pages = parse_pages_input(page_input) 
 
     pdf_path = find_pdf_in_folder(folder_path)
     
@@ -52,9 +52,9 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)  # Use the parsed page input
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)  
     corrected_data = []
-    skip_conditions = ["BBAN", "TABLET", "BUSINESS"] 
+    skip_conditions = ["BBAN", "TABLET", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT"] 
 
     for table in tables:
         df = table.df
