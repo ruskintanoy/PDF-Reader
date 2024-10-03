@@ -22,7 +22,7 @@ def dash_to_zero(value):
 def convert_to_number(value):
     value = dash_to_zero(value)
     try:
-        return float(value.replace(',', '').replace('$', '').strip())  # Removes commas and dollar signs
+        return float(value.replace(',', '').replace('$', '').strip())  
     except ValueError:
         return 0
 
@@ -30,12 +30,12 @@ def parse_pages_input(page_input):
     pages = []
     for part in page_input.split(','):
         part = part.strip()
-        if '-' in part:  # Handle ranges like '1-3'
+        if '-' in part:  
             start, end = part.split('-')
             pages.extend(range(int(start), int(end) + 1))
         else:
-            pages.append(int(part))  # Handle single pages like '5'
-    return ','.join(map(str, pages))  # Convert to a string that Camelot accepts
+            pages.append(int(part)) 
+    return ','.join(map(str, pages))  
 
 def adjust_column_widths(worksheet):
     for column_cells in worksheet.columns:
