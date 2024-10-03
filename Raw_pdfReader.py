@@ -18,9 +18,14 @@ def find_pdf_in_folder(folder_path):
 def dash_to_zero(value):
     return '0' if value == '-' else value
 
+def convert_to_number(value):
+    value = dash_to_zero(value)  
+    try:
+        return float(value.replace(',', '').replace('$', '').strip())  
+    except ValueError:
+        return 0
+
 def parse_pages_input(page_input):
-    """Parse the user's input into a valid string for Camelot."""
-    # This will allow ranges like '1-3' and individual pages like '5' and combine them
     pages = []
     for part in page_input.split(','):
         part = part.strip()
@@ -28,23 +33,20 @@ def parse_pages_input(page_input):
             start, end = part.split('-')
             pages.extend(range(int(start), int(end) + 1))
         else:
-            pages.append(int(part))  # Handle single pages like '5'
-    
-    return ','.join(map(str, pages))  # Convert to a string that Camelot accepts
+            pages.append(int(part))  
+    return ','.join(map(str, pages))  
 
 def pdf_to_excel(folder_path, output_excel_path):
-    # Initialize Tkinter root window
     root = tk.Tk()
-    root.withdraw()  # Hide the root window as we only need the dialog
+    root.withdraw()  
 
-    # Prompt for pages using Tkinter's simpledialog
     page_input = simpledialog.askstring("Input", "Enter the pages you want to extract:")
 
     if not page_input:
         print("No pages entered.")
         return
 
-    pages = parse_pages_input(page_input) 
+    pages = parse_pages_input(page_input)  
 
     pdf_path = find_pdf_in_folder(folder_path)
     
@@ -54,7 +56,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)  
     corrected_data = []
-    skip_conditions = ["BBAN", "TABLET", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT"] 
+    skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"] 
 
     for table in tables:
         df = table.df
@@ -90,17 +92,17 @@ def pdf_to_excel(folder_path, output_excel_path):
                 if has_partial_charges:
                     corrected_data.append([
                         first_name, last_name, contact_num,
-                        dash_to_zero(row[1].strip()), dash_to_zero(row[2].strip()),
-                        dash_to_zero(row[3].strip()), dash_to_zero(row[4].strip()),
-                        dash_to_zero(row[5].strip()), dash_to_zero(row[6].strip()), 
-                        dash_to_zero(row[7].strip())
+                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip()), 
+                        convert_to_number(row[7].strip())
                     ])
                 else:
                     corrected_data.append([
                         first_name, last_name, contact_num,
-                        dash_to_zero(row[1].strip()), dash_to_zero(row[2].strip()),
-                        dash_to_zero(row[3].strip()), dash_to_zero(row[4].strip()),
-                        dash_to_zero(row[5].strip()), dash_to_zero(row[6].strip())
+                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip())
                     ])
                 
                 i += 2
@@ -114,9 +116,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
     print(f"Data written to {output_excel_path}")
 
-# Folder path and output file path
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'raw_output.xlsx'
 
-# Run the function to process the PDF and export to Excel
 pdf_to_excel(folder_path, output_excel_path)
