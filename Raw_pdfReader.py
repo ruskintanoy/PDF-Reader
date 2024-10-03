@@ -29,7 +29,7 @@ def parse_pages_input(page_input):
     pages = []
     for part in page_input.split(','):
         part = part.strip()
-        if '-' in part:  # Handle ranges like '1-3'
+        if '-' in part:  
             start, end = part.split('-')
             pages.extend(range(int(start), int(end) + 1))
         else:
