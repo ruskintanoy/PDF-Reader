@@ -4,6 +4,7 @@ import os
 import re
 import tkinter as tk
 from tkinter import simpledialog
+from openpyxl import load_workbook
 
 def format_contact_number(contact_num):
     formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
@@ -19,7 +20,7 @@ def dash_to_zero(value):
     return '0' if value == '-' else value
 
 def convert_to_number(value):
-    value = dash_to_zero(value)  
+    value = dash_to_zero(value)
     try:
         return float(value.replace(',', '').replace('$', '').strip())  
     except ValueError:
@@ -36,9 +37,22 @@ def parse_pages_input(page_input):
             pages.append(int(part))  
     return ','.join(map(str, pages))  
 
+def adjust_column_widths(worksheet):
+    for column_cells in worksheet.columns:
+        max_length = 0
+        column = column_cells[0].column_letter 
+        for cell in column_cells:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except:
+                pass
+        adjusted_width = max_length + 2  
+        worksheet.column_dimensions[column].width = adjusted_width
+
 def pdf_to_excel(folder_path, output_excel_path):
     root = tk.Tk()
-    root.withdraw()  
+    root.withdraw()
 
     page_input = simpledialog.askstring("Input", "Enter the pages you want to extract:")
 
@@ -46,7 +60,7 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No pages entered.")
         return
 
-    pages = parse_pages_input(page_input)  
+    pages = parse_pages_input(page_input)
 
     pdf_path = find_pdf_in_folder(folder_path)
     
@@ -54,9 +68,9 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)  
+    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
     corrected_data = []
-    skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"] 
+    skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"]
 
     for table in tables:
         df = table.df
@@ -114,9 +128,19 @@ def pdf_to_excel(folder_path, output_excel_path):
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
         cleaned_df.to_excel(writer, index=False, header=True)
 
+    workbook = load_workbook(output_excel_path)
+    worksheet = workbook.active
+
+    adjust_column_widths(worksheet)  
+
+    # Save the adjusted workbook
+    workbook.save(output_excel_path)
+
     print(f"Data written to {output_excel_path}")
 
+# Folder path and output file path
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'raw_output.xlsx'
 
+# Run the function to process the PDF and export to Excel
 pdf_to_excel(folder_path, output_excel_path)
