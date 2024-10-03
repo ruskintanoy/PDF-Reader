@@ -23,7 +23,7 @@ def convert_to_number(value):
     """Converts a value to a float if it's numeric, or returns 0."""
     value = dash_to_zero(value)
     try:
-        return float(value.replace(',', '').replace('$', '').strip())  # Removes commas and dollar signs
+        return float(value.replace(',', '').replace('$', '').strip())  
     except ValueError:
         return 0
 
@@ -32,32 +32,31 @@ def parse_pages_input(page_input):
     pages = []
     for part in page_input.split(','):
         part = part.strip()
-        if '-' in part:  # Handle ranges like '1-3'
+        if '-' in part:  
             start, end = part.split('-')
             pages.extend(range(int(start), int(end) + 1))
         else:
-            pages.append(int(part))  # Handle single pages like '5'
-    return ','.join(map(str, pages))  # Convert to a string that Camelot accepts
+            pages.append(int(part)) 
+    return ','.join(map(str, pages)) 
 
 def adjust_column_widths(worksheet):
     """Auto-adjust the column widths based on the content of the headers."""
     for column_cells in worksheet.columns:
         max_length = 0
-        column = column_cells[0].column_letter  # Get the column letter
+        column = column_cells[0].column_letter  
         for cell in column_cells:
             try:
                 if cell.value:
                     max_length = max(max_length, len(str(cell.value)))
             except:
                 pass
-        adjusted_width = max_length + 2  # Add some padding for better readability
+        adjusted_width = max_length + 2  
         worksheet.column_dimensions[column].width = adjusted_width
 
 def pdf_to_excel(folder_path, output_excel_path):
     root = tk.Tk()
-    root.withdraw()  # Hide the root window as we only need the dialog
+    root.withdraw()  
 
-    # Prompt for pages using Tkinter's simpledialog
     page_input = simpledialog.askstring("Input", "Enter the pages you want to extract:")
 
     if not page_input:
@@ -118,20 +117,14 @@ def pdf_to_excel(folder_path, output_excel_path):
     with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
         cleaned_df.to_excel(writer, index=False, header=True)
 
-    # Load the workbook and worksheet to adjust column widths
     workbook = load_workbook(output_excel_path)
     worksheet = workbook.active
 
-    adjust_column_widths(worksheet)  # Adjust the column widths
-
-    # Save the adjusted workbook
+    adjust_column_widths(worksheet)  
     workbook.save(output_excel_path)
-
     print(f"Data written to {output_excel_path}")
 
-# Folder path and output file path
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'hw_output.xlsx'
 
-# Run the function to process the PDF and export to Excel
 pdf_to_excel(folder_path, output_excel_path)
