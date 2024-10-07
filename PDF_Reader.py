@@ -6,7 +6,11 @@ import tkinter as tk
 from tkinter import simpledialog
 from openpyxl import load_workbook
 
+
+MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
+
 def format_contact_number(contact_num):
+    """Format contact number into a standardized format."""
     formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
     return formatted_number
 
@@ -50,29 +54,67 @@ def adjust_column_widths(worksheet):
         adjusted_width = max_length + 2  
         worksheet.column_dimensions[column].width = adjusted_width
 
-def clean_data_frame(df, skip_conditions):
-    """
-    Clean the DataFrame by removing unwanted sections such as 'Summary of mobile data sharing'.
-    """
+def clean_data_frame(df, skip_conditions, table_type):
+
     cleaned_data = []
-    
-    for i in range(len(df)):
+
+    if table_type.lower() == 'hardware':
+        headers = ['First Name', 'Last Name', 'Contact Number',
+                   'Starting Balance', 'Payments ($)', 'Current Balance',
+                   'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)']
+    else:
+        headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
+                   'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
+                   'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
+
+    i = 0
+    while i < len(df):
         row = df.iloc[i]
-        first_column_text = row[0].strip().lower()
-        
-        # Detect and skip the "Summary of mobile data sharing" section
-        if "summary of mobile data sharing" in first_column_text:
+        first_column_text = row[0].strip()
+
+        if re.search(MONTH_REGEX, first_column_text):
+            i += 1
+            continue
+
+        if "summary of mobile data sharing" in first_column_text.lower():
             print("Detected unwanted section. Stopping extraction after this.")
             break
-        
-        # Skip any row that matches skip_conditions
-        if any(skip_text.lower() in first_column_text for skip_text in skip_conditions):
+
+        if any(skip_text.lower() in first_column_text.lower() for skip_text in skip_conditions):
+            i += 1
             continue
-        
-        cleaned_data.append(row)
+
+        if first_column_text.strip() and len(first_column_text.split()) > 1:
     
-    # Convert cleaned data back to DataFrame
-    return pd.DataFrame(cleaned_data)
+            name_parts = first_column_text.split(maxsplit=1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+            contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
+            contact_num = contact_row[0].strip() if contact_row is not None else ''
+            contact_num = format_contact_number(contact_num)
+
+            if table_type.lower() == 'hardware':
+                cleaned_data.append([
+                    first_name, last_name, contact_num,
+                    convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                    convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                    convert_to_number(row[5].strip())
+                ])
+            else:
+                cleaned_data.append([
+                    first_name, last_name, contact_num,
+                    convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                    convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                    convert_to_number(row[5].strip()), convert_to_number(row[6].strip()),
+                    convert_to_number(row[7].strip())
+                ])
+
+            i += 2
+        else:
+            i += 1
+    
+    return pd.DataFrame(cleaned_data, columns=headers)
 
 def pdf_to_excel(folder_path, output_excel_path):
     root = tk.Tk()
@@ -98,50 +140,25 @@ def pdf_to_excel(folder_path, output_excel_path):
         return
 
     try:
-        # Extract tables from the PDF
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
-        
-        # This will hold all the cleaned data across multiple tables
+  
         final_data = []
-        
-        # Skip conditions to avoid unwanted sections
+
         if table_type.lower() == 'hardware':
-            headers = ['First Name', 'Last Name', 'Contact Number',
-                       'Starting Balance', 'Payments ($)', 'Current Balance',
-                       'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)']
-            skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE"]
-
+            skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"]
         else:  # Raw table
-            skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"]
+            skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
 
-            has_partial_charges = True  # Set based on inspection
-            if has_partial_charges:
-                headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
-                           'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                           'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
-            else:
-                headers = ['First Name', 'Last Name', 'Contact Number',
-                           'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                           'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
-
-        # Process each extracted table
         for table in tables:
-            df = table.df  # Convert the table to a DataFrame
-            
-            # Clean the DataFrame: filter out unwanted rows and sections
-            cleaned_df = clean_data_frame(df, skip_conditions)
-            
-            # Append cleaned data to final data
+            df = table.df  
+            cleaned_df = clean_data_frame(df, skip_conditions, table_type)
             final_data.append(cleaned_df)
-        
-        # Combine all cleaned tables into a single DataFrame
+
         combined_df = pd.concat(final_data, ignore_index=True)
 
-        # Write the final cleaned DataFrame to Excel
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
             combined_df.to_excel(writer, index=False, header=True)
 
-        # Adjust column widths for better visibility
         workbook = load_workbook(output_excel_path)
         worksheet = workbook.active
         adjust_column_widths(worksheet)  
