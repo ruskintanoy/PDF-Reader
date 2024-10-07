@@ -60,9 +60,11 @@ def clean_data_frame(df, skip_conditions, table_type):
         row = df.iloc[i]
         first_column_text = row[0].strip()
 
-        if re.search(MONTH_REGEX, first_column_text) or "summary of mobile data sharing" in first_column_text.lower():
+        if re.search(MONTH_REGEX, first_column_text):
             i += 1
             continue
+        if "summary of mobile data sharing" in first_column_text.lower():
+            break
         if any(skip_text.lower() in first_column_text.lower() for skip_text in skip_conditions):
             i += 1
             continue
