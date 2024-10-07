@@ -2,7 +2,8 @@ import camelot
 import pandas as pd
 import re
 import tkinter as tk
-from tkinter import simpledialog, filedialog
+from tkinter import simpledialog, filedialog, messagebox
+from tkinter.ttk import Combobox
 from openpyxl import load_workbook
 
 MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
@@ -101,33 +102,9 @@ def clean_data_frame(df, skip_conditions, table_type):
     
     return pd.DataFrame(cleaned_data, columns=headers)
 
-def pdf_to_excel():
-    root = tk.Tk()
-    root.withdraw()
-
-    pdf_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
-    if not pdf_path:
-        print("No PDF file selected.")
-        return
-
-    table_type = simpledialog.askstring("Input", "Which table do you want to extract? (Hardware or Raw):")
-    if not table_type or table_type.lower() not in ['hardware', 'raw']:
-        print("Invalid selection. Please choose either 'Hardware' or 'Raw'.")
-        return
-
-    page_input = simpledialog.askstring("Input", "Enter the pages you want to extract:")
-    if not page_input:
-        print("No pages entered.")
-        return
-    pages = parse_pages_input(page_input)
-
-    output_excel_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-
-    if not output_excel_path:
-        print("No save location selected.")
-        return
-
+def run_extraction(pdf_path, table_type, page_input, root):
     try:
+        pages = parse_pages_input(page_input)
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
         final_data = []
 
@@ -142,6 +119,15 @@ def pdf_to_excel():
             final_data.append(cleaned_df)
 
         combined_df = pd.concat(final_data, ignore_index=True)
+        
+        # Prompt user for the save location after extraction is complete
+        output_excel_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+
+        if not output_excel_path:
+            messagebox.showerror("Save Error", "No save location selected.")
+            return
+
+        # Write the extracted data to the Excel file
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
             combined_df.to_excel(writer, index=False, header=True)
 
@@ -150,9 +136,56 @@ def pdf_to_excel():
         adjust_column_widths(worksheet)
         workbook.save(output_excel_path)
 
-        print(f"Data written to {output_excel_path}")
+        messagebox.showinfo("Success", f"Data written to {output_excel_path}")
+        
+        # Exit the application after saving
+        root.quit()
+        root.destroy()
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        messagebox.showerror("Error", f"An error occurred: {e}")
 
-pdf_to_excel()
+def open_ui():
+    root = tk.Tk()
+    root.title("PDF Table Extractor")
+    root.geometry("400x300")
+
+    def browse_pdf():
+        pdf_path.set(filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")]))
+    
+    def extract():
+        pdf = pdf_path.get()
+        table_type = table_type_var.get()
+        pages = page_entry.get()
+
+        if not pdf or not table_type or not pages:
+            messagebox.showerror("Input Error", "All fields are required!")
+        else:
+            run_extraction(pdf, table_type, pages, root)
+
+    pdf_path = tk.StringVar()
+    table_type_var = tk.StringVar()
+
+    # PDF selection
+    tk.Label(root, text="Select PDF File:").pack(pady=5)
+    tk.Entry(root, textvariable=pdf_path, width=50).pack(pady=5)
+    tk.Button(root, text="Browse", command=browse_pdf).pack(pady=5)
+
+    # Table type selection
+    tk.Label(root, text="Table Type:").pack(pady=5)
+    table_type_dropdown = Combobox(root, textvariable=table_type_var)
+    table_type_dropdown['values'] = ('Hardware', 'Raw')
+    table_type_dropdown.pack(pady=5)
+
+    # Page input
+    tk.Label(root, text="Pages (e.g., 1,2,5-7):").pack(pady=5)
+    page_entry = tk.Entry(root, width=20)
+    page_entry.pack(pady=5)
+
+    # Extract Button
+    tk.Button(root, text="Extract", command=extract, bg="green", fg="white").pack(pady=20)
+
+    root.mainloop()
+
+# Run the UI
+open_ui()
