@@ -101,7 +101,7 @@ def clean_data_frame(df, skip_conditions, table_type):
     
     return pd.DataFrame(cleaned_data, columns=headers)
 
-def pdf_to_excel(output_excel_path):
+def pdf_to_excel():
     root = tk.Tk()
     root.withdraw()
 
@@ -120,6 +120,12 @@ def pdf_to_excel(output_excel_path):
         print("No pages entered.")
         return
     pages = parse_pages_input(page_input)
+
+    output_excel_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
+
+    if not output_excel_path:
+        print("No save location selected.")
+        return
 
     try:
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
@@ -149,5 +155,4 @@ def pdf_to_excel(output_excel_path):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-output_excel_path = 'telus_output.xlsx'
-pdf_to_excel(output_excel_path)
+pdf_to_excel()
