@@ -50,9 +50,33 @@ def adjust_column_widths(worksheet):
         adjusted_width = max_length + 2  
         worksheet.column_dimensions[column].width = adjusted_width
 
+def clean_data_frame(df, skip_conditions):
+    """
+    Clean the DataFrame by removing unwanted sections such as 'Summary of mobile data sharing'.
+    """
+    cleaned_data = []
+    
+    for i in range(len(df)):
+        row = df.iloc[i]
+        first_column_text = row[0].strip().lower()
+        
+        # Detect and skip the "Summary of mobile data sharing" section
+        if "summary of mobile data sharing" in first_column_text:
+            print("Detected unwanted section. Stopping extraction after this.")
+            break
+        
+        # Skip any row that matches skip_conditions
+        if any(skip_text.lower() in first_column_text for skip_text in skip_conditions):
+            continue
+        
+        cleaned_data.append(row)
+    
+    # Convert cleaned data back to DataFrame
+    return pd.DataFrame(cleaned_data)
+
 def pdf_to_excel(folder_path, output_excel_path):
     root = tk.Tk()
-    root.withdraw() 
+    root.withdraw()
 
     table_type = simpledialog.askstring("Input", "Which table do you want to extract? (Hardware or Raw):")
 
@@ -73,54 +97,24 @@ def pdf_to_excel(folder_path, output_excel_path):
         print("No PDF file found in the folder.")
         return
 
-    tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
-    corrected_data = []
-
-    if table_type.lower() == 'hardware':
-        headers = ['First Name', 'Last Name', 'Contact Number',
-                   'Starting Balance', 'Payments ($)', 'Current Balance',
-                   'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)']
-        skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE"]
-
-    else:  # Raw table
-        skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"]
-
-    for table in tables:
-        df = table.df
-
+    try:
+        # Extract tables from the PDF
+        tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
+        
+        # This will hold all the cleaned data across multiple tables
+        final_data = []
+        
+        # Skip conditions to avoid unwanted sections
         if table_type.lower() == 'hardware':
-            i = 0
-            while i < len(df):
-                row = df.iloc[i]
-                
-                if any(skip_text.lower() in row[0].lower() for skip_text in skip_conditions):
-                    i += 1
-                    continue  
-                
-                if row[0].strip() and len(row[0].split()) > 1:
-                    name_parts = row[0].split(maxsplit=1)
-                    first_name = name_parts[0]
-                    last_name = name_parts[1] if len(name_parts) > 1 else ''
-                    
-                    contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
-                    contact_num = contact_row[0].strip() if contact_row is not None else ''
+            headers = ['First Name', 'Last Name', 'Contact Number',
+                       'Starting Balance', 'Payments ($)', 'Current Balance',
+                       'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)']
+            skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE"]
 
-                    contact_num = format_contact_number(contact_num)
+        else:  # Raw table
+            skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET"]
 
-                    corrected_data.append([
-                        first_name, last_name, contact_num,
-                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                        convert_to_number(row[5].strip())
-                    ])
-                    
-                    i += 2
-                else:
-                    i += 1
-
-        else:  
-            has_partial_charges = len(df.columns) == 8
-
+            has_partial_charges = True  # Set based on inspection
             if has_partial_charges:
                 headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
                            'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
@@ -130,54 +124,33 @@ def pdf_to_excel(folder_path, output_excel_path):
                            'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
                            'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
 
-            i = 0
-            while i < len(df):
-                row = df.iloc[i]
-                
-                if any(skip_text.lower() in row[0].lower() for skip_text in skip_conditions):
-                    i += 1
-                    continue  
-                
-                if row[0].strip() and len(row[0].split()) > 1:
-                    name_parts = row[0].split(maxsplit=1)
-                    first_name = name_parts[0]
-                    last_name = name_parts[1] if len(name_parts) > 1 else ''
-                    
-                    contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
-                    contact_num = contact_row[0].strip() if contact_row is not None else ''
+        # Process each extracted table
+        for table in tables:
+            df = table.df  # Convert the table to a DataFrame
+            
+            # Clean the DataFrame: filter out unwanted rows and sections
+            cleaned_df = clean_data_frame(df, skip_conditions)
+            
+            # Append cleaned data to final data
+            final_data.append(cleaned_df)
+        
+        # Combine all cleaned tables into a single DataFrame
+        combined_df = pd.concat(final_data, ignore_index=True)
 
-                    contact_num = format_contact_number(contact_num)
+        # Write the final cleaned DataFrame to Excel
+        with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
+            combined_df.to_excel(writer, index=False, header=True)
 
-                    if has_partial_charges:
-                        corrected_data.append([
-                            first_name, last_name, contact_num,
-                            convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                            convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                            convert_to_number(row[5].strip()), convert_to_number(row[6].strip()), 
-                            convert_to_number(row[7].strip())
-                        ])
-                    else:
-                        corrected_data.append([
-                            first_name, last_name, contact_num,
-                            convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                            convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                            convert_to_number(row[5].strip()), convert_to_number(row[6].strip())
-                        ])
-                    
-                    i += 2
-                else:
-                    i += 1
+        # Adjust column widths for better visibility
+        workbook = load_workbook(output_excel_path)
+        worksheet = workbook.active
+        adjust_column_widths(worksheet)  
+        workbook.save(output_excel_path)
+        
+        print(f"Data written to {output_excel_path}")
 
-    cleaned_df = pd.DataFrame(corrected_data, columns=headers)
-    
-    with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-        cleaned_df.to_excel(writer, index=False, header=True)
-
-    workbook = load_workbook(output_excel_path)
-    worksheet = workbook.active
-    adjust_column_widths(worksheet)  
-    workbook.save(output_excel_path)
-    print(f"Data written to {output_excel_path}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'telus_output.xlsx'
