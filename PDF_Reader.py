@@ -3,22 +3,14 @@ import pandas as pd
 import os
 import re
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, filedialog
 from openpyxl import load_workbook
-
 
 MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
 
 def format_contact_number(contact_num):
-    """Format contact number into a standardized format."""
     formatted_number = re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
     return formatted_number
-
-def find_pdf_in_folder(folder_path):
-    for file_name in os.listdir(folder_path):
-        if file_name.endswith('.pdf'):
-            return os.path.join(folder_path, file_name)
-    return None
 
 def dash_to_zero(value):
     return '0' if value == '-' else value
@@ -55,17 +47,21 @@ def adjust_column_widths(worksheet):
         worksheet.column_dimensions[column].width = adjusted_width
 
 def clean_data_frame(df, skip_conditions, table_type):
-
     cleaned_data = []
-
+   
     if table_type.lower() == 'hardware':
         headers = ['First Name', 'Last Name', 'Contact Number',
                    'Starting Balance', 'Payments ($)', 'Current Balance',
                    'Starting Device Discount Balance ($)', 'Current Device Discount Balance ($)']
     else:
-        headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
-                   'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                   'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
+        if len(df.columns) == 8:  
+            headers = ['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
+                       'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
+                       'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
+        else: 
+            headers = ['First Name', 'Last Name', 'Contact Number',
+                       'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
+                       'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)']
 
     i = 0
     while i < len(df):
@@ -85,7 +81,6 @@ def clean_data_frame(df, skip_conditions, table_type):
             continue
 
         if first_column_text.strip() and len(first_column_text.split()) > 1:
-    
             name_parts = first_column_text.split(maxsplit=1)
             first_name = name_parts[0]
             last_name = name_parts[1] if len(name_parts) > 1 else ''
@@ -102,13 +97,21 @@ def clean_data_frame(df, skip_conditions, table_type):
                     convert_to_number(row[5].strip())
                 ])
             else:
-                cleaned_data.append([
-                    first_name, last_name, contact_num,
-                    convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                    convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                    convert_to_number(row[5].strip()), convert_to_number(row[6].strip()),
-                    convert_to_number(row[7].strip())
-                ])
+                if len(df.columns) == 8: 
+                    cleaned_data.append([
+                        first_name, last_name, contact_num,
+                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip()),
+                        convert_to_number(row[7].strip())
+                    ])
+                else: 
+                    cleaned_data.append([
+                        first_name, last_name, contact_num,
+                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip())
+                    ])
 
             i += 2
         else:
@@ -116,9 +119,15 @@ def clean_data_frame(df, skip_conditions, table_type):
     
     return pd.DataFrame(cleaned_data, columns=headers)
 
-def pdf_to_excel(folder_path, output_excel_path):
+def pdf_to_excel(output_excel_path):
     root = tk.Tk()
     root.withdraw()
+
+    pdf_path = filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")])
+
+    if not pdf_path:
+        print("No PDF file selected.")
+        return
 
     table_type = simpledialog.askstring("Input", "Which table do you want to extract? (Hardware or Raw):")
 
@@ -133,11 +142,6 @@ def pdf_to_excel(folder_path, output_excel_path):
         return
 
     pages = parse_pages_input(page_input)
-    pdf_path = find_pdf_in_folder(folder_path)
-    
-    if not pdf_path:
-        print("No PDF file found in the folder.")
-        return
 
     try:
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
@@ -146,7 +150,7 @@ def pdf_to_excel(folder_path, output_excel_path):
 
         if table_type.lower() == 'hardware':
             skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"]
-        else:  # Raw table
+        else:  
             skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
 
         for table in tables:
@@ -169,7 +173,6 @@ def pdf_to_excel(folder_path, output_excel_path):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-folder_path = r"C:\Users\ruskin\Spaar Inc\SPAAR IT - Documents\Telus Monthly Bill\Telus Invoice"
 output_excel_path = 'telus_output.xlsx'
 
-pdf_to_excel(folder_path, output_excel_path)
+pdf_to_excel(output_excel_path)
