@@ -1,6 +1,5 @@
 import camelot
 import pandas as pd
-import os
 import re
 import tkinter as tk
 from tkinter import simpledialog, filedialog
