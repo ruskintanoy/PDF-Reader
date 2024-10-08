@@ -5,9 +5,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Combobox
 from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 
 MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
 
+# Utility Functions
 def format_contact_number(contact_num):
     return re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
 
@@ -109,16 +111,20 @@ def run_extraction(pdf_path, table_type, page_input, root):
         pages = parse_pages_input(page_input)
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
         final_data = []
+        page_26_data = []
 
         if table_type.lower() == 'hardware':
             skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"]
         else:  
             skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
 
-        for table in tables:
+        for page_num, table in zip(range(len(pages.split(','))), tables):
             df = table.df
             cleaned_df = clean_data_frame(df, skip_conditions, table_type)
-            final_data.append(cleaned_df)
+            if '26' in pages.split(',')[page_num]:  
+                page_26_data.append(cleaned_df)
+            else:
+                final_data.append(cleaned_df)
 
         combined_df = pd.concat(final_data, ignore_index=True)
 
@@ -129,10 +135,22 @@ def run_extraction(pdf_path, table_type, page_input, root):
             return
 
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-            combined_df.to_excel(writer, index=False, header=True)
+            combined_df.to_excel(writer, sheet_name="Correct Data", index=False, header=True)
+
+            if page_26_data:
+                sheet_26 = pd.concat(page_26_data, ignore_index=True)
+                sheet_26.to_excel(writer, sheet_name="Page 26 (Review)", index=False, header=True)
 
         workbook = load_workbook(output_excel_path)
-        worksheet = workbook.active
+        worksheet = workbook["Page 26 (Review)"]
+
+        fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+        for col_idx in [4, 5, 6, 7]:  
+            for col in worksheet.iter_cols(min_col=col_idx, max_col=col_idx):
+                for cell in col:
+                    cell.fill = fill  
+
+        adjust_column_widths(workbook["Correct Data"])
         adjust_column_widths(worksheet)
         workbook.save(output_excel_path)
 
