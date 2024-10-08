@@ -136,8 +136,6 @@ def run_extraction(pdf_path, table_type, page_input, root):
         adjust_column_widths(worksheet)
         workbook.save(output_excel_path)
 
-        messagebox.showinfo("Success", f"Data written to {output_excel_path}")
-
         root.quit()
         root.destroy()
 
