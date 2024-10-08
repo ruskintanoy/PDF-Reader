@@ -7,9 +7,11 @@ from tkinter.ttk import Combobox
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
+# Constants
 MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
 HIGHLIGHT_COLUMNS = ["Partial Charges ($)", "Monthly and Other Charges ($)", "Add-Ons ($)", "Usage Charges ($)"]
 
+# Utility Functions
 def format_contact_number(contact_num):
     return re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
 
@@ -53,6 +55,32 @@ def get_headers(df, table_type):
                       'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
                       'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)'])
 
+def clean_data_row(row, contact_num, table_type, df_columns_count):
+    first_name, last_name = row[0].split(maxsplit=1)
+    
+    if table_type.lower() == 'hardware':
+        return [
+            first_name, last_name, contact_num,
+            convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+            convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+            convert_to_number(row[5].strip())
+        ]
+    elif df_columns_count == 8:
+        return [
+            first_name, last_name, contact_num,
+            convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+            convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+            convert_to_number(row[5].strip()), convert_to_number(row[6].strip()),
+            convert_to_number(row[7].strip())
+        ]
+    else:
+        return [
+            first_name, last_name, contact_num,
+            convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
+            convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
+            convert_to_number(row[5].strip()), convert_to_number(row[6].strip())
+        ]
+
 def clean_data_frame(df, skip_conditions, table_type):
     headers = get_headers(df, table_type)
     cleaned_data = []
@@ -72,34 +100,10 @@ def clean_data_frame(df, skip_conditions, table_type):
             continue
 
         if len(first_column_text.split()) > 1:
-            name_parts = first_column_text.split(maxsplit=1)
-            first_name, last_name = name_parts[0], name_parts[1] if len(name_parts) > 1 else ''
             contact_row = df.iloc[i + 1] if i + 1 < len(df) else None
             contact_num = format_contact_number(contact_row[0].strip()) if contact_row is not None else ''
 
-            if table_type.lower() == 'hardware':
-                cleaned_data.append([
-                    first_name, last_name, contact_num,
-                    convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                    convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                    convert_to_number(row[5].strip())
-                ])
-            else:
-                if len(df.columns) == 8:
-                    cleaned_data.append([
-                        first_name, last_name, contact_num,
-                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip()),
-                        convert_to_number(row[7].strip())
-                    ])
-                else:
-                    cleaned_data.append([
-                        first_name, last_name, contact_num,
-                        convert_to_number(row[1].strip()), convert_to_number(row[2].strip()),
-                        convert_to_number(row[3].strip()), convert_to_number(row[4].strip()),
-                        convert_to_number(row[5].strip()), convert_to_number(row[6].strip())
-                    ])
+            cleaned_data.append(clean_data_row(row, contact_num, table_type, len(df.columns)))
             i += 2
         else:
             i += 1
@@ -114,17 +118,17 @@ def highlight_columns(worksheet, headers):
             for cell in col:
                 cell.fill = highlight_fill
 
+# Extraction Logic
 def run_extraction(pdf_path, table_type, page_input, root):
     try:
         pages = parse_pages_input(page_input)
         tables = camelot.read_pdf(pdf_path, flavor='stream', pages=",".join(map(str, pages)))
+
+        skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"] if table_type.lower() == 'hardware' \
+            else ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
+
         final_data = []
         page_26_data = None
-
-        if table_type.lower() == 'hardware':
-            skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"]
-        else:
-            skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
 
         for page_number, table in zip(pages, tables):
             df = table.df
@@ -136,13 +140,11 @@ def run_extraction(pdf_path, table_type, page_input, root):
                 final_data.append(cleaned_df)
 
         output_excel_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
-
         if not output_excel_path:
             messagebox.showerror("Save Error", "No save location selected.")
             return
 
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-         
             combined_df = pd.concat(final_data, ignore_index=True)
             combined_df.to_excel(writer, index=False, header=True, sheet_name="Extracted Data")
 
@@ -151,13 +153,10 @@ def run_extraction(pdf_path, table_type, page_input, root):
                 highlight_columns(writer.sheets["Review"], page_26_data.columns)
 
         workbook = load_workbook(output_excel_path)
-
-        worksheet_data = workbook["Extracted Data"]
-        adjust_column_widths(worksheet_data)
+        adjust_column_widths(workbook["Extracted Data"])
 
         if "Review" in workbook.sheetnames:
-            worksheet_review = workbook["Review"]
-            adjust_column_widths(worksheet_review)
+            adjust_column_widths(workbook["Review"])
 
         workbook.save(output_excel_path)
 
@@ -167,10 +166,14 @@ def run_extraction(pdf_path, table_type, page_input, root):
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred: {e}")
 
+# UI Logic
 def open_ui():
     root = tk.Tk()
     root.title("PDF Table Extractor")
     root.geometry("400x300")
+
+    pdf_path = tk.StringVar()
+    table_type_var = tk.StringVar()
 
     def browse_pdf():
         pdf_path.set(filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")]))
@@ -184,9 +187,6 @@ def open_ui():
             messagebox.showerror("Input Error", "All fields are required!")
         else:
             run_extraction(pdf, table_type, pages, root)
-
-    pdf_path = tk.StringVar()
-    table_type_var = tk.StringVar()
 
     tk.Label(root, text="Select PDF File:").pack(pady=5)
     tk.Entry(root, textvariable=pdf_path, width=50).pack(pady=5)
