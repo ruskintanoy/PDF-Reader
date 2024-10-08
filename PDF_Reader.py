@@ -8,8 +8,8 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
 MONTH_REGEX = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\b'
+HIGHLIGHT_COLUMNS = ["Partial Charges ($)", "Monthly and Other Charges ($)", "Add-Ons ($)", "Usage Charges ($)"]
 
-# Utility Functions
 def format_contact_number(contact_num):
     return re.sub(r'(\d{3})[ ](\d{3}-\d{4})', r'\1-\2', contact_num)
 
@@ -27,17 +27,17 @@ def parse_pages_input(page_input):
     pages = []
     for part in page_input.split(','):
         part = part.strip()
-        if '-' in part:  
+        if '-' in part:
             start, end = map(int, part.split('-'))
             pages.extend(range(start, end + 1))
         else:
             pages.append(int(part))
-    return ','.join(map(str, pages))  
+    return pages
 
 def adjust_column_widths(worksheet):
     for column_cells in worksheet.columns:
         max_length = max((len(str(cell.value)) for cell in column_cells if cell.value), default=0)
-        adjusted_width = max_length + 2  
+        adjusted_width = max_length + 2
         worksheet.column_dimensions[column_cells[0].column_letter].width = adjusted_width
 
 def get_headers(df, table_type):
@@ -48,7 +48,7 @@ def get_headers(df, table_type):
     else:
         return (['First Name', 'Last Name', 'Contact Number', 'Partial Charges ($)',
                  'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
-                 'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)'] if len(df.columns) == 8 
+                 'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)'] if len(df.columns) == 8
                 else ['First Name', 'Last Name', 'Contact Number',
                       'Monthly and Other Charges ($)', 'Add-Ons ($)', 'Usage Charges ($)',
                       'Total Before Taxes ($)', 'Taxes ($)', 'Total ($)'])
@@ -103,30 +103,37 @@ def clean_data_frame(df, skip_conditions, table_type):
             i += 2
         else:
             i += 1
-    
+
     return pd.DataFrame(cleaned_data, columns=headers)
+
+def highlight_columns(worksheet, headers):
+    highlight_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+    for col in worksheet.iter_cols(min_row=1, max_row=1):
+        if col[0].value in HIGHLIGHT_COLUMNS:
+            for cell in col:
+                cell.fill = highlight_fill
 
 def run_extraction(pdf_path, table_type, page_input, root):
     try:
         pages = parse_pages_input(page_input)
-        tables = camelot.read_pdf(pdf_path, flavor='stream', pages=pages)
+        tables = camelot.read_pdf(pdf_path, flavor='stream', pages=",".join(map(str, pages)))
         final_data = []
-        page_26_data = []
+        page_26_data = None
 
         if table_type.lower() == 'hardware':
             skip_conditions = ["SAMSUNG", "IPHONE", "GOOGLE", "GALAXY", "SUMMARY", "MOBILE", "SPAAR"]
-        else:  
+        else:
             skip_conditions = ["BBAN", "BUSINESS", "MOBILE", "SUMMARY", "ACCOUNT", "TABLET", "SPAAR"]
 
-        for page_num, table in zip(range(len(pages.split(','))), tables):
+        for page_number, table in zip(pages, tables):
             df = table.df
             cleaned_df = clean_data_frame(df, skip_conditions, table_type)
-            if '26' in pages.split(',')[page_num]:  
-                page_26_data.append(cleaned_df)
+
+            if page_number == 26:
+                page_26_data = cleaned_df
             else:
                 final_data.append(cleaned_df)
-
-        combined_df = pd.concat(final_data, ignore_index=True)
 
         output_excel_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
 
@@ -135,23 +142,23 @@ def run_extraction(pdf_path, table_type, page_input, root):
             return
 
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-            combined_df.to_excel(writer, sheet_name="Correct Data", index=False, header=True)
+            
+            combined_df = pd.concat(final_data, ignore_index=True)
+            combined_df.to_excel(writer, index=False, header=True, sheet_name="Extracted Data")
 
-            if page_26_data:
-                sheet_26 = pd.concat(page_26_data, ignore_index=True)
-                sheet_26.to_excel(writer, sheet_name="Page 26 (Review)", index=False, header=True)
+            if page_26_data is not None:
+                page_26_data.to_excel(writer, index=False, header=True, sheet_name="Review")
+                highlight_columns(writer.sheets["Review"], page_26_data.columns)
 
         workbook = load_workbook(output_excel_path)
-        worksheet = workbook["Page 26 (Review)"]
 
-        fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
-        for col_idx in [4, 5, 6, 7]:  
-            for col in worksheet.iter_cols(min_col=col_idx, max_col=col_idx):
-                for cell in col:
-                    cell.fill = fill  
+        worksheet_data = workbook["Extracted Data"]
+        adjust_column_widths(worksheet_data)
 
-        adjust_column_widths(workbook["Correct Data"])
-        adjust_column_widths(worksheet)
+        if "Review" in workbook.sheetnames:
+            worksheet_review = workbook["Review"]
+            adjust_column_widths(worksheet_review)
+
         workbook.save(output_excel_path)
 
         root.quit()
@@ -167,7 +174,7 @@ def open_ui():
 
     def browse_pdf():
         pdf_path.set(filedialog.askopenfilename(filetypes=[("PDF files", "*.pdf")]))
-    
+
     def extract():
         pdf = pdf_path.get()
         table_type = table_type_var.get()
