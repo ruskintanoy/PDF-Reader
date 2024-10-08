@@ -142,7 +142,7 @@ def run_extraction(pdf_path, table_type, page_input, root):
             return
 
         with pd.ExcelWriter(output_excel_path, engine='openpyxl') as writer:
-            
+         
             combined_df = pd.concat(final_data, ignore_index=True)
             combined_df.to_excel(writer, index=False, header=True, sheet_name="Extracted Data")
 
