@@ -1,7 +1,6 @@
 import camelot
 import pandas as pd
 import re
-from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
 # Constants
@@ -107,7 +106,7 @@ def clean_data_frame(df, skip_conditions, table_type):
 
     return pd.DataFrame(cleaned_data, columns=headers)
 
-def highlight_columns(worksheet, headers):
+def highlight_columns(worksheet):
     highlight_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
 
     for col in worksheet.iter_cols(min_row=1, max_row=1):
